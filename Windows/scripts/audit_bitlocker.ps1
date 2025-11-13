@@ -21,7 +21,7 @@ $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 if (!(Test-Path $LogPath)) { New-Item -Path $LogPath -ItemType Directory -Force | Out-Null }
 
 Write-Host "`n═══════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "🔐  BitLocker & TPM Encryption Audit" -ForegroundColor Cyan
+Write-Host "  BitLocker & TPM Encryption Audit" -ForegroundColor Cyan
 Write-Host "═══════════════════════════════════════════════════`n" -ForegroundColor Cyan
 
 # Helper Functions
@@ -125,7 +125,7 @@ Write-Host "Present=$($tpm.TpmPresent), Ready=$($tpm.TpmReady)"
 # Summary
 $percentage = [math]::Round(($score / $total) * 100, 1)
 Write-Host "`n───────────────────────────────────────────────────" -ForegroundColor Yellow
-Write-Host "🎯 Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
+Write-Host " Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
 Write-Host "───────────────────────────────────────────────────`n" -ForegroundColor Yellow
 
 # Export Results
@@ -140,13 +140,13 @@ $output = @{
 if ($ExportJSON) {
     $jsonPath = Join-Path $LogPath "bitlocker_audit_$timestamp.json"
     $output | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
-    Write-Host "📄 JSON exported to: $jsonPath" -ForegroundColor Cyan
+    Write-Host " JSON exported to: $jsonPath" -ForegroundColor Cyan
 }
 
 # Show Remediation
-$failed = $Results | Where-Object {$_.Status -eq "✘"}
+$failed = $Results | Where-Object {$_.Status -eq "Nop"}
 if ($failed) {
-    Write-Host "🔧 Remediation Steps:" -ForegroundColor Yellow
+    Write-Host " Remediation Steps:" -ForegroundColor Yellow
     $failed | ForEach-Object {
         Write-Host "   • $($_.Check): " -NoNewline -ForegroundColor Red
         Write-Host $_.Remediation -ForegroundColor White
