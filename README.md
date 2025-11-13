@@ -8,6 +8,10 @@
 
 This repository is organized into three main operational areas: `ActiveDirectory`, `Linux`, and `Windows`.
 
+<img width="1154" height="373" alt="image" src="https://github.com/user-attachments/assets/80019d56-8e00-48eb-837a-f9e63f936ac8" />
+<img width="345" height="414" alt="image" src="https://github.com/user-attachments/assets/39c60047-e1de-4720-a85f-56851d9101b6" />
+
+
 
 ---
 
