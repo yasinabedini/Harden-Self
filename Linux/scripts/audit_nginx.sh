@@ -1,39 +1,125 @@
 #!/bin/bash
-# Author: yasinabedini
-# GitHub: https://github.com/yasinabedini
-# Purpose: Audit Nginx configuration security posture
+################################################################################
+# Script Name:  audit_nginx.sh
+# Author:       yasinabedini
+# GitHub:       https://github.com/yasinabedini
+# Purpose:      Simple Nginx security audit
+# Version:      3.0 (Simplified)
+# Date:         2025-11-13
+################################################################################
 
-CONFIG_MAIN="/etc/nginx/nginx.conf"
-SITES="/etc/nginx/sites-enabled"
-SSL_SNIPPET="/etc/nginx/snippets/ssl-params.conf"
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-SCORE=0
-TOTAL=10
+# Config
+NGINX_CONF="/etc/nginx/nginx.conf"
+SITES_ENABLED="/etc/nginx/sites-enabled"
 
-echo "=== Nginx Hardening Audit ==="
+PASS=0
+FAIL=0
 
-check_pattern() {
-    local desc="$1"
-    local pattern="$2"
-    local expected="$3"
-    if grep -Eiq "$pattern" "$CONFIG_MAIN" "$SITES" "$SSL_SNIPPET" 2>/dev/null; then
-        echo "[+] $desc ✅"
-        ((SCORE++))
-    else
-        echo "[!] $desc ❌  (recommended: $expected)"
-    fi
-}
+echo "=========================================="
+echo "    Nginx Security Audit"
+echo "=========================================="
+echo ""
 
-check_pattern "Hide version (server_tokens off)" "server_tokens\s+off" "server_tokens off;"
-check_pattern "Directory listing disabled" "autoindex\s+off" "autoindex off;"
-check_pattern "X-Frame-Options header set" "X-Frame-Options" "add_header X-Frame-Options SAMEORIGIN;"
-check_pattern "Strict-Transport-Security header set" "Strict-Transport-Security" "add_header Strict-Transport-Security;"
-check_pattern "HTTPS redirect configured" "return\s+301\s+https://" "return 301 https://\$host\$request_uri;"
-grep -Eiq "TLSv1(\.1)?|SSLv3" "$SSL_SNIPPET" 2>/dev/null && echo "[!] Weak SSL/TLS version ❌" || { echo "[+] Strong SSL/TLS ✅"; ((SCORE++)); }
-grep -Eiq "ssl_ciphers.*(AES_256|CHACHA20)" "$SSL_SNIPPET" 2>/dev/null && echo "[+] Strong SSL ciphers ✅" && ((SCORE++)) || echo "[!] Weak SSL ciphers ❌"
-check_pattern "client_max_body_size limited" "client_max_body_size" "client_max_body_size 10M;"
-[ "$(stat -c '%a' /var/log/nginx 2>/dev/null)" -le 750 ] && echo "[+] Log directory permission OK ✅" && ((SCORE++)) || echo "[!] Log directory permission weak ❌"
-check_pattern "Rate limiting set" "limit_req" "limit_req_zone / limit_req configured"
+# Check 1: Nginx installed
+if command -v nginx >/dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC} Nginx installed"
+    ((PASS++))
+else
+    echo -e "${RED}✗${NC} Nginx not installed"
+    ((FAIL++))
+fi
 
-PERCENT=$((SCORE * 100 / TOTAL))
-echo -e "\nSecurity Score: ${PERCENT}%"
+# Check 2: server_tokens off
+if grep -qE "^\s*server_tokens\s+off" "$NGINX_CONF" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} server_tokens off"
+    ((PASS++))
+else
+    echo -e "${RED}✗${NC} server_tokens not off"
+    ((FAIL++))
+fi
+
+# Check 3: Non-root user
+if grep -qE "^\s*user\s+(?!root)" "$NGINX_CONF" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} Running as non-root user"
+    ((PASS++))
+else
+    echo -e "${RED}✗${NC} Running as root or not configured"
+    ((FAIL++))
+fi
+
+# Check 4: autoindex off
+if grep -qE "^\s*autoindex\s+on" "$NGINX_CONF" "$SITES_ENABLED"/* 2>/dev/null; then
+    echo -e "${RED}✗${NC} Directory listing enabled"
+    ((FAIL++))
+else
+    echo -e "${GREEN}✓${NC} Directory listing disabled"
+    ((PASS++))
+fi
+
+# Check 5: X-Frame-Options
+if grep -qE "add_header\s+X-Frame-Options" "$NGINX_CONF" "$SITES_ENABLED"/* 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} X-Frame-Options configured"
+    ((PASS++))
+else
+    echo -e "${RED}✗${NC} X-Frame-Options missing"
+    ((FAIL++))
+fi
+
+# Check 6: X-Content-Type-Options
+if grep -qE "add_header\s+X-Content-Type-Options" "$NGINX_CONF" "$SITES_ENABLED"/* 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} X-Content-Type-Options configured"
+    ((PASS++))
+else
+    echo -e "${RED}✗${NC} X-Content-Type-Options missing"
+    ((FAIL++))
+fi
+
+# Check 7: HSTS
+if grep -qE "add_header\s+Strict-Transport-Security" "$NGINX_CONF" "$SITES_ENABLED"/* 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} HSTS configured"
+    ((PASS++))
+else
+    echo -e "${RED}✗${NC} HSTS missing"
+    ((FAIL++))
+fi
+
+# Check 8: SSL Protocols (TLS 1.2/1.3)
+if grep -qE "ssl_protocols.*TLSv1\.(2|3)" "$NGINX_CONF" "$SITES_ENABLED"/* 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} Modern TLS protocols (1.2/1.3)"
+    ((PASS++))
+else
+    echo -e "${RED}✗${NC} Weak or missing TLS protocols"
+    ((FAIL++))
+fi
+
+# Check 9: Rate limiting
+if grep -qE "limit_req_zone|limit_conn_zone" "$NGINX_CONF" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} Rate limiting configured"
+    ((PASS++))
+else
+    echo -e "${RED}✗${NC} Rate limiting not configured"
+    ((FAIL++))
+fi
+
+# Check 10: client_max_body_size
+if grep -qE "^\s*client_max_body_size" "$NGINX_CONF" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} client_max_body_size configured"
+    ((PASS++))
+else
+    echo -e "${RED}✗${NC} client_max_body_size not configured"
+    ((FAIL++))
+fi
+
+TOTAL=$((PASS + FAIL))
+PERCENT=$((PASS * 100 / TOTAL))
+
+echo ""
+echo "=========================================="
+echo "  Score: $PASS/$TOTAL ($PERCENT%)"
+echo "=========================================="

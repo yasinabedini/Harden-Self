@@ -42,3 +42,7 @@ rate-limit {
 responses-per-second 5;
 };
 };
+
+| Author | Repository | Last Update |
+|---------|-------------|----------|--------------|
+| [**yasinabedini**](https://github.com/yasinabedini) | Harden‑Self / playbooks / linux | 2025‑11‑13 |

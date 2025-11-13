@@ -44,3 +44,25 @@ Hardening Docker ensures minimal attack surface and controlled privilege boundar
   "live-restore": true
 }
 
+
+### ⚙️ Example Container Runtime
+
+```bash
+# run container with least privilege:
+docker run -d \
+  --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid \
+  --cap-drop=ALL \
+  --cap-add=NET_BIND_SERVICE \
+  --security-opt=no-new-privileges:true \
+  --security-opt=seccomp=/path/to/seccomp.json \
+  --user 1000:1000 \
+  --pids-limit 100 \
+  --memory="512m" \
+  --cpus="0.5" \
+  myapp:latest
+```
+
+| Author | Repository | License | Last Update |
+|---------|-------------|----------|--------------|
+| [**yasinabedini**](https://github.com/yasinabedini) | Harden‑Self / playbooks / linux | 2025‑11‑13 |

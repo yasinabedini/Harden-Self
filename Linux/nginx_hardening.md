@@ -26,7 +26,7 @@ Although lightweight and efficient, a weak configuration can expose security fla
 | 3 | Add security headers | same | `add_header` directives (see below) | XSS / clickjacking protection |
 | 4 | Enforce HTTPS (redirect HTTP → HTTPS) | Site config | `return 301 https://$host$request_uri;` | Encrypt connections |
 | 5 | Harden SSL/TLS | `/etc/nginx/snippets/ssl-params.conf` | Disable TLS < 1.2 | Strong encryption only |
-| 6 | Use strong ciphers | same | `ssl_ciphers 'TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256';` | Prevent weak crypto |
+| 6 | limit_conn_zone | same | `$binary_remote_addr zone=addr:10m;` | Prevent DoS / overflow |
 | 7 | Limit request size | same | `client_max_body_size 10M;` | Prevent DoS / overflow |
 | 8 | Protect logs | `/var/log/nginx` | `chmod 640 access.log error.log` | Restrict log access |
 | 9 | Disable unnecessary modules | build/config | disable mail, stream if unused | Reduce attack surface |
@@ -40,3 +40,8 @@ add_header X-XSS-Protection "1; mode=block";
 add_header Referrer-Policy "no-referrer-when-downgrade";
 add_header Permissions-Policy "geolocation=(), microphone=()";
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+```
+
+| Author | Repository | Last Update |
+|---------|-------------|----------|--------------|
+| [**yasinabedini**](https://github.com/yasinabedini) | Harden‑Self / playbooks / linux | 2025‑11‑13 |

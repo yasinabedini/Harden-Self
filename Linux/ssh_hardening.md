@@ -1,5 +1,3 @@
-# SSH Hardening Guide
-
 ### 📋 Overview
 SSH (Secure Shell) provides remote access and system management capabilities. A misconfigured SSH service can expose your system to brute-force attacks, privilege escalation, and remote exploitation.
 
@@ -31,10 +29,19 @@ SSH (Secure Shell) provides remote access and system management capabilities. A 
 | 8 | Set login banner | `/etc/ssh/sshd_config` | `Banner /etc/issue.net` | Legal & privacy notice |
 | 9 | Restrict ciphers | `/etc/ssh/sshd_config` | `Ciphers aes256-ctr,aes192-ctr,aes128-ctr` | Enforce strong encryption |
 | 10 | Restrict MACs | `/etc/ssh/sshd_config` | `MACs hmac-sha2-512,hmac-sha2-256` | Secure message authentication |
-
+| 11 | PermitEmptyPasswords | ` etc/ssh/sshd_config` | `PermitEmptyPasswords no` | Enforce Password |
+| 12 | MaxAuthTries | ` etc/ssh/sshd_config` | `MaxAuthTries 3` | Restriction failed login |
+| 13 | MaxSessions  | ` etc/ssh/sshd_config` | `MaxSessions 2` | Restriction open session |
+| 14 | Listen Address  | ` etc/ssh/sshd_config` | `ListenAddress 10.0.0.1` | Restriction Source IP |
+| 15 | Port  | ` etc/ssh/sshd_config` | `Port 2222` | Change Default Port |
 ---
 
 ## 🧠 Verify & Apply
 After editing, restart SSH service:
 ```bash
 sudo systemctl restart sshd
+```
+
+| Author | Repository| Last Update |
+|---------|-------------|----------|--------------|
+| [**yasinabedini**](https://github.com/yasinabedini) | Harden‑Self / playbooks / linux | 2025‑11‑13 |

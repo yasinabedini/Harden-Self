@@ -22,7 +22,7 @@ This guide targets **Debian/Ubuntu** systems.
 
 | # | Action | File | Recommended Setting | Purpose |
 |---|---------|------|--------------------|----------|
-| 1 | Enable account lockout | `/etc/pam.d/common-auth` and `/etc/security/faillock.conf` | use `pam_faillock.so` | Prevent brute‑force |
+| 1 | Enable account lockout | `/etc/pam.d/common-auth` and `/etc/security/faillock.conf` | use `pam_tally2.so` | Prevent brute‑force |
 | 2 | Configure lockout duration & threshold | `/etc/security/faillock.conf` | `deny = 5`, `unlock_time = 600` | Balance blocking and usability |
 | 3 | Enforce strong password complexity | `/etc/security/pwquality.conf` | `minlen = 12`, `ucredit = -1`, `lcredit = -1`, `dcredit = -1`, `ocredit = -1` | Stop weak passwords |
 | 4 | Enforce password expiration and history | `/etc/login.defs` | `PASS_MAX_DAYS 90`, `PASS_MIN_DAYS 7` | Rotate passwords |
@@ -41,4 +41,9 @@ This guide targets **Debian/Ubuntu** systems.
 auth required pam_faillock.so preauth silent audit deny=5 unlock_time=600
 auth required pam_unix.so
 auth [default=die] pam_faillock.so authfail audit deny=5 unlock_time=600
-account required pam_faillock.so
+account required pam_tally2.so
+```
+
+| Author | Repository | Last Update |
+|---------|-------------|----------|--------------|
+| [**yasinabedini**](https://github.com/yasinabedini) | Harden‑Self / playbooks / linux | 2025‑11‑13 |
