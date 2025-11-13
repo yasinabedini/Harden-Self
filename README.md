@@ -19,9 +19,6 @@ This repository is organized into three main operational areas: `ActiveDirectory
 
 ## Content Breakdown
 
-### ActiveDirectory
-
-This directory contains resources, guides, and potential scripts for securing Domain Controllers, Kerberos policies, authentication protocols, and general Active Directory services.
 
 ### Linux
 
@@ -57,3 +54,7 @@ This section includes specific hardening guides (`.md` files) and automated Powe
 ```bash
    git clone https://github.com/yasinabedini/harden-safe.git
    cd harden-safe
+
+
+Author : yasinabedini GitHub : https://github.com/yasinabedini
+
