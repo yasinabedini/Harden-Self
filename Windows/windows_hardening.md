@@ -17,6 +17,7 @@ Applies to domain members and standalone hosts.
 | Lockout duration | >=15 minutes | Delay repeated attacks |
 
 🧭 Goal: Ensure password and lockout policies resist common cracking attempts.
+
 ---
 
 ## 🕵️‍♂️ 2. Audit Policy
@@ -86,7 +87,7 @@ Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanManServer\Parameter
 Get-SmbServerConfiguration | Select EnableSMB1Protocol, EnableSecuritySignature
 Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System" | Select ConsentPromptBehaviorAdmin, EnableLUA
 auditpol /get /category:*
-
+```
 
 ---
 
