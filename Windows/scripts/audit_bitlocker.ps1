@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    BitLocker & TPM Encryption Audit (Enhanced)
+    BitLocker & TPM Encryption Audit (Simplified)
 .DESCRIPTION
     Validates BitLocker encryption with XTS-AES-256, TPM+PIN, and Secure Boot
 .AUTHOR
@@ -20,22 +20,23 @@ $ErrorActionPreference = "SilentlyContinue"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 if (!(Test-Path $LogPath)) { New-Item -Path $LogPath -ItemType Directory -Force | Out-Null }
 
-Write-Host "`n═══════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  BitLocker & TPM Encryption Audit" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════`n" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "===================================================" -ForegroundColor Cyan
+Write-Host "   BitLocker & TPM Encryption Audit" -ForegroundColor Cyan
+Write-Host "===================================================" -ForegroundColor Cyan
+Write-Host ""
 
-# Helper Functions
+# Helper Function
 function Test-Compliance {
     param([bool]$Condition, [string]$Hint = "")
-    $status = if ($Condition) { 
-        @{Pass=$true; Icon="✔"; Color="Green"; Remediation=""} 
-    } else { 
-        @{Pass=$false; Icon="✘"; Color="Red"; Remediation=$Hint} 
+    if ($Condition) {
+        return @{Pass=$true; Icon="PASS"; Color="Green"; Remediation=""}
+    } else {
+        return @{Pass=$false; Icon="FAIL"; Color="Red"; Remediation=$Hint}
     }
-    return $status
 }
 
-# Results Array
+# Results
 $Results = @()
 $score = 0
 $total = 6
@@ -43,7 +44,7 @@ $total = 6
 # Test 1: OS Drive Encryption
 $bitlocker = Get-BitLockerVolume -MountPoint "C:"
 $encrypted = ($bitlocker.VolumeStatus -eq "FullyEncrypted")
-$test1 = Test-Compliance $encrypted "Run: Enable-BitLocker -MountPoint C: -EncryptionMethod XtsAes256"
+$test1 = Test-Compliance $encrypted "Enable BitLocker with: Enable-BitLocker -MountPoint C: -EncryptionMethod XtsAes256"
 $Results += [PSCustomObject]@{
     Check = "OS Drive Encrypted (C:)"
     Status = $test1.Icon
@@ -57,7 +58,7 @@ Write-Host $bitlocker.VolumeStatus
 # Test 2: XTS-AES-256
 $method = $bitlocker.EncryptionMethod
 $isXTS = ($method -eq "XtsAes256")
-$test2 = Test-Compliance $isXTS "Change method: manage-bde -upgrade C: -EncryptionMethod XtsAes256"
+$test2 = Test-Compliance $isXTS "Use: manage-bde -upgrade C: -EncryptionMethod XtsAes256"
 $Results += [PSCustomObject]@{
     Check = "Encryption Method = XTS-AES-256"
     Status = $test2.Icon
@@ -84,7 +85,7 @@ Write-Host $(if($tpmPin){"Active"}else{"Missing"})
 
 # Test 4: Recovery Key in AD/Azure
 $recoveryKey = ($protectors | Where-Object {$_.KeyProtectorType -eq "RecoveryPassword"})
-$test4 = Test-Compliance ($null -ne $recoveryKey) "Backup key: Backup-BitLockerKeyProtector -MountPoint C: -KeyProtectorId {ID}"
+$test4 = Test-Compliance ($null -ne $recoveryKey) "Backup recovery key using: Backup-BitLockerKeyProtector -MountPoint C: -KeyProtectorId {ID}"
 $Results += [PSCustomObject]@{
     Check = "Recovery Key Configured"
     Status = $test4.Icon
@@ -96,8 +97,8 @@ Write-Host "[$($test4.Icon)] Recovery Key: " -NoNewline -ForegroundColor $test4.
 Write-Host $(if($recoveryKey){"Configured"}else{"Not Found"})
 
 # Test 5: Secure Boot
-$secureBoot = Confirm-SecureBootUEFI
-$test5 = Test-Compliance $secureBoot "Enable in UEFI/BIOS settings"
+try { $secureBoot = Confirm-SecureBootUEFI } catch { $secureBoot = $false }
+$test5 = Test-Compliance $secureBoot "Enable Secure Boot in UEFI/BIOS settings"
 $Results += [PSCustomObject]@{
     Check = "Secure Boot Enabled"
     Status = $test5.Icon
@@ -110,7 +111,8 @@ Write-Host $secureBoot
 
 # Test 6: TPM Version
 $tpm = Get-Tpm
-$tpmOK = ($tpm.TpmPresent -and $tpm.TpmReady -and ($tpm.ManufacturerVersion -ge 2.0))
+$version = [double]$tpm.ManufacturerVersion
+$tpmOK = ($tpm.TpmPresent -and $tpm.TpmReady -and ($version -ge 2.0))
 $test6 = Test-Compliance $tpmOK "Upgrade to TPM 2.0"
 $Results += [PSCustomObject]@{
     Check = "TPM 2.0 Ready"
@@ -124,9 +126,11 @@ Write-Host "Present=$($tpm.TpmPresent), Ready=$($tpm.TpmReady)"
 
 # Summary
 $percentage = [math]::Round(($score / $total) * 100, 1)
-Write-Host "`n───────────────────────────────────────────────────" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "---------------------------------------------------" -ForegroundColor Yellow
 Write-Host " Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
-Write-Host "───────────────────────────────────────────────────`n" -ForegroundColor Yellow
+Write-Host "---------------------------------------------------" -ForegroundColor Yellow
+Write-Host ""
 
 # Export Results
 $output = @{
@@ -140,15 +144,15 @@ $output = @{
 if ($ExportJSON) {
     $jsonPath = Join-Path $LogPath "bitlocker_audit_$timestamp.json"
     $output | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
-    Write-Host " JSON exported to: $jsonPath" -ForegroundColor Cyan
+    Write-Host "JSON exported to: $jsonPath" -ForegroundColor Cyan
 }
 
 # Show Remediation
-$failed = $Results | Where-Object {$_.Status -eq "Nop"}
+$failed = $Results | Where-Object {$_.Status -eq "FAIL"}
 if ($failed) {
-    Write-Host " Remediation Steps:" -ForegroundColor Yellow
+    Write-Host "Remediation Steps:" -ForegroundColor Yellow
     $failed | ForEach-Object {
-        Write-Host "   • $($_.Check): " -NoNewline -ForegroundColor Red
+        Write-Host " - $($_.Check): " -NoNewline -ForegroundColor Red
         Write-Host $_.Remediation -ForegroundColor White
     }
 }
