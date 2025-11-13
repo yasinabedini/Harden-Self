@@ -1,4 +1,3 @@
-
 <#
 .SYNOPSIS
     Windows Defender & ASR Rules Audit (Enhanced)
@@ -18,16 +17,16 @@ $ErrorActionPreference = "SilentlyContinue"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 if (!(Test-Path $LogPath)) { New-Item -Path $LogPath -ItemType Directory -Force | Out-Null }
 
-Write-Host "`n═══════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "🛡️  Windows Defender & ASR Audit" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════`n" -ForegroundColor Cyan
+Write-Host "`n===================================================" -ForegroundColor Cyan
+Write-Host "Windows Defender & ASR Audit" -ForegroundColor Cyan
+Write-Host "===================================================`n" -ForegroundColor Cyan
 
 function Test-Compliance {
     param([bool]$Condition, [string]$Hint = "")
     if ($Condition) { 
-        @{Pass=$true; Icon="✔"; Color="Green"; Remediation=""} 
+        @{Pass=$true; Icon="OK"; Color="Green"; Remediation=""} 
     } else { 
-        @{Pass=$false; Icon="✘"; Color="Red"; Remediation=$Hint} 
+        @{Pass=$false; Icon="FAIL"; Color="Red"; Remediation=$Hint} 
     }
 }
 
@@ -148,9 +147,9 @@ Write-Host $status.AMEngineVersion
 
 # Summary
 $percentage = [math]::Round(($score / $total) * 100, 1)
-Write-Host "`n───────────────────────────────────────────────────" -ForegroundColor Yellow
-Write-Host "🎯 Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
-Write-Host "───────────────────────────────────────────────────`n" -ForegroundColor Yellow
+Write-Host "`n---------------------------------------------------" -ForegroundColor Yellow
+Write-Host "Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
+Write-Host "---------------------------------------------------`n" -ForegroundColor Yellow
 
 # Export
 $output = @{
@@ -164,10 +163,14 @@ $output = @{
 if ($ExportJSON) {
     $jsonPath = Join-Path $LogPath "defender_audit_$timestamp.json"
     $output | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
-    Write-Host "📄 JSON exported to: $jsonPath" -ForegroundColor Cyan
+    Write-Host "JSON exported to: $jsonPath" -ForegroundColor Cyan
 }
 
 # Remediation
-$failed = $Results | Where-Object-eq "✘"}
+$failed = $Results | Where-Object { $_.Status -eq "FAIL" }
 if ($failed) {
-    Write-Host "🔧 Remediation
+    Write-Host "Remediation suggestions:" -ForegroundColor Yellow
+    $failed | ForEach-Object {
+        Write-Host (" - " + $_.Check + ": " + $_.Remediation) -ForegroundColor Red
+    }
+}

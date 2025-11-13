@@ -17,16 +17,16 @@ $ErrorActionPreference = "SilentlyContinue"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 if (!(Test-Path $LogPath)) { New-Item -Path $LogPath -ItemType Directory -Force | Out-Null }
 
-Write-Host "`n═══════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "🔄  Windows Update & Patching Status Audit" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════`n" -ForegroundColor Cyan
+Write-Host "`n===================================================" -ForegroundColor Cyan
+Write-Host "Windows Update & Patching Status Audit" -ForegroundColor Cyan
+Write-Host "===================================================`n" -ForegroundColor Cyan
 
 function Test-Compliance {
     param([bool]$Condition, [string]$Hint = "")
     if ($Condition) { 
-        @{Pass=$true; Icon="✔"; Color="Green"; Remediation=""} 
+        @{Pass=$true; Icon="Pass"; Color="Green"; Remediation=""} 
     } else { 
-        @{Pass=$false; Icon="✘"; Color="Red"; Remediation=$Hint} 
+        @{Pass=$false; Icon="Fail"; Color="Red"; Remediation=$Hint} 
     }
 }
 
@@ -82,7 +82,7 @@ if ($historyCount -gt 0) {
     Write-Host "[$($test3.Icon)] Last Check: " -NoNewline -ForegroundColor $test3.Color
     Write-Host "$daysSince days ago"
 } else {
-    Write-Host "[⚠] Last Check: No history found" -ForegroundColor Yellow
+    Write-Host "[Info] Last Check: No history found" -ForegroundColor Yellow
 }
 
 # Test 4: Pending Updates Count
@@ -104,7 +104,6 @@ $osVersion = [System.Environment]::OSVersion.Version
 $build = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").CurrentBuild
 $ubr = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").UBR
 $fullBuild = "$build.$ubr"
-# Latest known stable: 19045 (Win 10 22H2), 22621 (Win 11 22H2)
 $versionOK = ($build -ge 19045)
 $test5 = Test-Compliance $versionOK "Update to latest feature update via Windows Update"
 $Results += [PSCustomObject]@{
@@ -132,7 +131,7 @@ if ($wsus) {
     Write-Host "[$($test6.Icon)] WSUS Server: " -NoNewline -ForegroundColor $test6.Color
     Write-Host $wsus.WUServer
 } else {
-    Write-Host "[ℹ] WSUS: Not configured (using Microsoft Update)" -ForegroundColor Cyan
+    Write-Host "[Info] WSUS: Not configured (using Microsoft Update)" -ForegroundColor Cyan
 }
 
 # Test 7: Delivery Optimization (P2P) Configured
@@ -165,9 +164,9 @@ Write-Host $(if($rebootOK){"Enabled"}else{"Disabled"})
 
 # Summary
 $percentage = [math]::Round(($score / $total) * 100, 1)
-Write-Host "`n───────────────────────────────────────────────────" -ForegroundColor Yellow
-Write-Host "🎯 Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
-Write-Host "───────────────────────────────────────────────────`n" -ForegroundColor Yellow
+Write-Host "`n---------------------------------------------------" -ForegroundColor Yellow
+Write-Host "Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
+Write-Host "---------------------------------------------------`n" -ForegroundColor Yellow
 
 # Export
 $output = @{
@@ -181,15 +180,15 @@ $output = @{
 if ($ExportJSON) {
     $jsonPath = Join-Path $LogPath "update_audit_$timestamp.json"
     $output | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
-    Write-Host "📄 JSON exported to: $jsonPath" -ForegroundColor Cyan
+    Write-Host "JSON exported to: $jsonPath" -ForegroundColor Cyan
 }
 
 # Remediation
-$failed = $Results | Where-Object {$_.Status -eq "✘"}
+$failed = $Results | Where-Object {$_.Status -eq "Fail"}
 if ($failed) {
-    Write-Host "🔧 Remediation Steps:" -ForegroundColor Yellow
+    Write-Host "Remediation Steps:" -ForegroundColor Yellow
     $failed | ForEach-Object {
-        Write-Host "   • $($_.Check): " -NoNewline -ForegroundColor Red
+        Write-Host " - $($_.Check): " -NoNewline -ForegroundColor Red
         Write-Host $_.Remediation -ForegroundColor White
     }
 }

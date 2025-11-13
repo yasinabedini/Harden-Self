@@ -17,16 +17,18 @@ $ErrorActionPreference = "SilentlyContinue"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 if (!(Test-Path $LogPath)) { New-Item -Path $LogPath -ItemType Directory -Force | Out-Null }
 
-Write-Host "`n═══════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "🛡️  General System Hardening Audit" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════`n" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "===================================================" -ForegroundColor Cyan
+Write-Host "   General System Hardening Audit" -ForegroundColor Cyan
+Write-Host "===================================================" -ForegroundColor Cyan
+Write-Host ""
 
 function Test-Compliance {
     param([bool]$Condition, [string]$Hint = "")
     if ($Condition) { 
-        @{Pass=$true; Icon="✔"; Color="Green"; Remediation=""} 
+        @{Pass=$true; Icon="PASS"; Color="Green"; Remediation=""} 
     } else { 
-        @{Pass=$false; Icon="✘"; Color="Red"; Remediation=$Hint} 
+        @{Pass=$false; Icon="FAIL"; Color="Red"; Remediation=$Hint} 
     }
 }
 
@@ -249,9 +251,11 @@ Write-Host $(if($hvciOK){"Active"}else{"Disabled"})
 
 # Summary
 $percentage = [math]::Round(($score / $total) * 100, 1)
-Write-Host "`n───────────────────────────────────────────────────" -ForegroundColor Yellow
-Write-Host "🎯 Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
-Write-Host "───────────────────────────────────────────────────`n" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "---------------------------------------------------" -ForegroundColor Yellow
+Write-Host "Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
+Write-Host "---------------------------------------------------" -ForegroundColor Yellow
+Write-Host ""
 
 # Export
 $output = @{
@@ -265,15 +269,15 @@ $output = @{
 if ($ExportJSON) {
     $jsonPath = Join-Path $LogPath "general_audit_$timestamp.json"
     $output | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
-    Write-Host "📄 JSON exported to: $jsonPath" -ForegroundColor Cyan
+    Write-Host "JSON exported to: $jsonPath" -ForegroundColor Cyan
 }
 
 # Remediation
-$failed = $Results | Where-Object {$_.Status -eq "✘"}
+$failed = $Results | Where-Object {$_.Status -eq "FAIL"}
 if ($failed) {
-    Write-Host "🔧 Remediation Steps:" -ForegroundColor Yellow
+    Write-Host "Remediation Steps:" -ForegroundColor Yellow
     $failed | ForEach-Object {
-        Write-Host "   • $($_.Check): " -NoNewline -ForegroundColor Red
+        Write-Host "   - $($_.Check): " -NoNewline -ForegroundColor Red
         Write-Host $_.Remediation -ForegroundColor White
     }
 }

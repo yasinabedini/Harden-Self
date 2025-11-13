@@ -4,7 +4,7 @@
 .AUTHOR
     yasinabedini
 .VERSION
-    2.0
+    2.1 (Clean & Compatible)
 #>
 
 [CmdletBinding()]
@@ -17,16 +17,16 @@ $ErrorActionPreference = "SilentlyContinue"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 if (!(Test-Path $LogPath)) { New-Item -Path $LogPath -ItemType Directory -Force | Out-Null }
 
-Write-Host "`n═══════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "📊  Logging & Sysmon Configuration Audit" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════`n" -ForegroundColor Cyan
+Write-Host "`n===================================================" -ForegroundColor Cyan
+Write-Host "   Logging & Sysmon Configuration Audit" -ForegroundColor Cyan
+Write-Host "===================================================`n" -ForegroundColor Cyan
 
 function Test-Compliance {
     param([bool]$Condition, [string]$Hint = "")
     if ($Condition) { 
-        @{Pass=$true; Icon="✔"; Color="Green"; Remediation=""} 
+        @{Pass=$true; Icon="PASS"; Color="Green"; Remediation=""} 
     } else { 
-        @{Pass=$false; Icon="✘"; Color="Red"; Remediation=$Hint} 
+        @{Pass=$false; Icon="FAIL"; Color="Red"; Remediation=$Hint} 
     }
 }
 
@@ -53,9 +53,9 @@ if ($sysmon) {
     $sysmonExe = Get-Item "C:\Windows\Sysmon64.exe" -ErrorAction SilentlyContinue
     $version = $sysmonExe.VersionInfo.FileVersion
     $versionOK = ([version]$version -ge [version]"15.0")
-    $test2 = Test-Compliance $versionOK "Update Sysmon: sysmon64.exe -u && download latest"
+    $test2 = Test-Compliance $versionOK "Update Sysmon: sysmon64.exe -u and install the latest version"
     $Results += [PSCustomObject]@{
-        Check = "Sysmon Version (≥15.0)"
+        Check = "Sysmon Version (>=15.0)"
         Status = $test2.Icon
         Value = $version
         Remediation = $test2.Remediation
@@ -70,7 +70,7 @@ $secLog = Get-WinEvent -ListLog Security
 $secLogOK = ($secLog.MaximumSizeInBytes -ge 512MB)
 $test3 = Test-Compliance $secLogOK "wevtutil sl Security /ms:1073741824"
 $Results += [PSCustomObject]@{
-    Check = "Security Log Size (≥512MB)"
+    Check = "Security Log Size (>=512MB)"
     Status = $test3.Icon
     Value = "$([math]::Round($secLog.MaximumSizeInBytes/1MB,0)) MB"
     Remediation = $test3.Remediation
@@ -85,7 +85,7 @@ if ($sysmonLog) {
     $sysmonLogOK = ($sysmonLog.MaximumSizeInBytes -ge 512MB)
     $test4 = Test-Compliance $sysmonLogOK "wevtutil sl Microsoft-Windows-Sysmon/Operational /ms:1073741824"
     $Results += [PSCustomObject]@{
-        Check = "Sysmon Log Size (≥512MB)"
+        Check = "Sysmon Log Size (>=512MB)"
         Status = $test4.Icon
         Value = "$([math]::Round($sysmonLog.MaximumSizeInBytes/1MB,0)) MB"
         Remediation = $test4.Remediation
@@ -106,7 +106,7 @@ $Results += [PSCustomObject]@{
     Remediation = $test5.Remediation
 }
 if ($test5.Pass) { $score++ }
-Write-Host "[$($test5.Icon)] PS Transcription: " -NoNewline -ForegroundColor $test5.Color
+Write-Host "[$($test5.Icon)] PowerShell Transcription: " -NoNewline -ForegroundColor $test5.Color
 Write-Host $(if($psLogOK){"Active"}else{"Disabled"})
 
 # Test 6: Script Block Logging
@@ -181,9 +181,9 @@ Write-Host $(if($defLogOK){"Active"}else{"Disabled"})
 
 # Summary
 $percentage = [math]::Round(($score / $total) * 100, 1)
-Write-Host "`n───────────────────────────────────────────────────" -ForegroundColor Yellow
-Write-Host "🎯 Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
-Write-Host "───────────────────────────────────────────────────`n" -ForegroundColor Yellow
+Write-Host "`n---------------------------------------------------" -ForegroundColor Yellow
+Write-Host "Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
+Write-Host "---------------------------------------------------`n" -ForegroundColor Yellow
 
 # Export
 $output = @{
@@ -197,15 +197,15 @@ $output = @{
 if ($ExportJSON) {
     $jsonPath = Join-Path $LogPath "logging_audit_$timestamp.json"
     $output | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
-    Write-Host "📄 JSON exported to: $jsonPath" -ForegroundColor Cyan
+    Write-Host "JSON exported to: $jsonPath" -ForegroundColor Cyan
 }
 
 # Remediation
-$failed = $Results | Where-Object {$_.Status -eq "✘"}
+$failed = $Results | Where-Object {$_.Status -eq "FAIL"}
 if ($failed) {
-    Write-Host "🔧 Remediation Steps:" -ForegroundColor Yellow
+    Write-Host "Remediation Steps:" -ForegroundColor Yellow
     $failed | ForEach-Object {
-        Write-Host "   • $($_.Check): " -NoNewline -ForegroundColor Red
+        Write-Host "   - $($_.Check): " -NoNewline -ForegroundColor Red
         Write-Host $_.Remediation -ForegroundColor White
     }
 }

@@ -20,17 +20,17 @@ $ErrorActionPreference = "SilentlyContinue"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 if (!(Test-Path $LogPath)) { New-Item -Path $LogPath -ItemType Directory -Force | Out-Null }
 
-Write-Host "`n═══════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "🔐  BitLocker & TPM Encryption Audit" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════`n" -ForegroundColor Cyan
+Write-Host "`n===================================================" -ForegroundColor Cyan
+Write-Host "BitLocker & TPM Encryption Audit" -ForegroundColor Cyan
+Write-Host "===================================================`n" -ForegroundColor Cyan
 
 # Helper Functions
 function Test-Compliance {
     param([bool]$Condition, [string]$Hint = "")
     $status = if ($Condition) { 
-        @{Pass=$true; Icon="✔"; Color="Green"; Remediation=""} 
+        @{Pass=$true; Icon="OK"; Color="Green"; Remediation=""} 
     } else { 
-        @{Pass=$false; Icon="✘"; Color="Red"; Remediation=$Hint} 
+        @{Pass=$false; Icon="FAIL"; Color="Red"; Remediation=$Hint} 
     }
     return $status
 }
@@ -96,7 +96,11 @@ Write-Host "[$($test4.Icon)] Recovery Key: " -NoNewline -ForegroundColor $test4.
 Write-Host $(if($recoveryKey){"Configured"}else{"Not Found"})
 
 # Test 5: Secure Boot
-$secureBoot = Confirm-SecureBootUEFI
+try {
+    $secureBoot = Confirm-SecureBootUEFI
+} catch {
+    $secureBoot = $false
+}
 $test5 = Test-Compliance $secureBoot "Enable in UEFI/BIOS settings"
 $Results += [PSCustomObject]@{
     Check = "Secure Boot Enabled"
@@ -110,12 +114,12 @@ Write-Host $secureBoot
 
 # Test 6: TPM Version
 $tpm = Get-Tpm
-$tpmOK = ($tpm.TpmPresent -and $tpm.TpmReady -and ($tpm.ManufacturerVersion -ge 2.0))
+$tpmOK = ($tpm.TpmPresent -and $tpm.TpmReady -and ($tpm.SpecVersion -match "2.0"))
 $test6 = Test-Compliance $tpmOK "Upgrade to TPM 2.0"
 $Results += [PSCustomObject]@{
     Check = "TPM 2.0 Ready"
     Status = $test6.Icon
-    Value = "v$($tpm.ManufacturerVersion)"
+    Value = $tpm.SpecVersion
     Remediation = $test6.Remediation
 }
 if ($test6.Pass) { $score++ }
@@ -124,9 +128,9 @@ Write-Host "Present=$($tpm.TpmPresent), Ready=$($tpm.TpmReady)"
 
 # Summary
 $percentage = [math]::Round(($score / $total) * 100, 1)
-Write-Host "`n───────────────────────────────────────────────────" -ForegroundColor Yellow
-Write-Host "🎯 Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
-Write-Host "───────────────────────────────────────────────────`n" -ForegroundColor Yellow
+Write-Host "`n---------------------------------------------------" -ForegroundColor Yellow
+Write-Host "Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
+Write-Host "---------------------------------------------------`n" -ForegroundColor Yellow
 
 # Export Results
 $output = @{
@@ -140,15 +144,15 @@ $output = @{
 if ($ExportJSON) {
     $jsonPath = Join-Path $LogPath "bitlocker_audit_$timestamp.json"
     $output | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
-    Write-Host "📄 JSON exported to: $jsonPath" -ForegroundColor Cyan
+    Write-Host "JSON exported to: $jsonPath" -ForegroundColor Cyan
 }
 
 # Show Remediation
-$failed = $Results | Where-Object {$_.Status -eq "✘"}
+$failed = $Results | Where-Object {$_.Status -eq "FAIL"}
 if ($failed) {
-    Write-Host "🔧 Remediation Steps:" -ForegroundColor Yellow
+    Write-Host "Remediation Steps:" -ForegroundColor Yellow
     $failed | ForEach-Object {
-        Write-Host "   • $($_.Check): " -NoNewline -ForegroundColor Red
+        Write-Host " - $($_.Check): " -NoNewline -ForegroundColor Red
         Write-Host $_.Remediation -ForegroundColor White
     }
 }

@@ -4,7 +4,7 @@
 .AUTHOR
     yasinabedini
 .VERSION
-    2.0
+    2.1 (Clean)
 #>
 
 [CmdletBinding()]
@@ -17,16 +17,18 @@ $ErrorActionPreference = "SilentlyContinue"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 if (!(Test-Path $LogPath)) { New-Item -Path $LogPath -ItemType Directory -Force | Out-Null }
 
-Write-Host "`n═══════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "🔥  Windows Firewall & Network Protection Audit" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════`n" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "===================================================" -ForegroundColor Cyan
+Write-Host " Windows Firewall & Network Protection Audit" -ForegroundColor Cyan
+Write-Host "===================================================" -ForegroundColor Cyan
+Write-Host ""
 
 function Test-Compliance {
     param([bool]$Condition, [string]$Hint = "")
     if ($Condition) { 
-        @{Pass=$true; Icon="✔"; Color="Green"; Remediation=""} 
+        return @{Pass=$true; Icon="OK"; Color="Green"; Remediation=""} 
     } else { 
-        @{Pass=$false; Icon="✘"; Color="Red"; Remediation=$Hint} 
+        return @{Pass=$false; Icon="FAIL"; Color="Red"; Remediation=$Hint} 
     }
 }
 
@@ -48,7 +50,6 @@ foreach ($profile in $profiles) {
     if ($test.Pass) { $score++ }
     Write-Host "[$($test.Icon)] $($profile.Name) Profile: " -NoNewline -ForegroundColor $test.Color
     Write-Host $profile.Enabled
-    $total++
 }
 
 # Test 4: Default Inbound Action = Block
@@ -121,7 +122,7 @@ if ($test8.Pass) { $score++ }
 Write-Host "[$($test8.Icon)] SMBv1 Block Rule: " -NoNewline -ForegroundColor $test8.Color
 Write-Host $(if($smbOK){"Exists"}else{"Missing"})
 
-# Test 9: IPsec Enforcement (Optional but Recommended)
+# Test 9: IPsec Enforcement
 $ipsec = Get-NetIPsecRule | Where-Object {$_.Enabled}
 $ipsecOK = ($ipsec.Count -gt 0)
 $test9 = Test-Compliance $ipsecOK "Configure IPsec policies via Group Policy or New-NetIPsecRule"
@@ -137,9 +138,11 @@ Write-Host "$($ipsec.Count)"
 
 # Summary
 $percentage = [math]::Round(($score / $total) * 100, 1)
-Write-Host "`n───────────────────────────────────────────────────" -ForegroundColor Yellow
-Write-Host "🎯 Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
-Write-Host "───────────────────────────────────────────────────`n" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "---------------------------------------------------" -ForegroundColor Yellow
+Write-Host " Compliance Score: $score / $total  ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
+Write-Host "---------------------------------------------------" -ForegroundColor Yellow
+Write-Host ""
 
 # Export
 $output = @{
@@ -153,15 +156,15 @@ $output = @{
 if ($ExportJSON) {
     $jsonPath = Join-Path $LogPath "firewall_audit_$timestamp.json"
     $output | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
-    Write-Host "📄 JSON exported to: $jsonPath" -ForegroundColor Cyan
+    Write-Host "JSON exported to: $jsonPath" -ForegroundColor Cyan
 }
 
 # Remediation
-$failed = $Results | Where-Object {$_.Status -eq "✘"}
+$failed = $Results | Where-Object {$_.Status -eq "FAIL"}
 if ($failed) {
-    Write-Host "🔧 Remediation Steps:" -ForegroundColor Yellow
+    Write-Host "Remediation Steps:" -ForegroundColor Yellow
     $failed | ForEach-Object {
-        Write-Host "   • $($_.Check): " -NoNewline -ForegroundColor Red
+        Write-Host "   - $($_.Check): " -NoNewline -ForegroundColor Red
         Write-Host $_.Remediation -ForegroundColor White
     }
 }

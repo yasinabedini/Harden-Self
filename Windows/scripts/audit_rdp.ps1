@@ -17,16 +17,16 @@ $ErrorActionPreference = "SilentlyContinue"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 if (!(Test-Path $LogPath)) { New-Item -Path $LogPath -ItemType Directory -Force | Out-Null }
 
-Write-Host "`n═══════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "🖥️  Remote Desktop Protocol (RDP) Security Audit" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════`n" -ForegroundColor Cyan
+Write-Host "`n===================================================" -ForegroundColor Cyan
+Write-Host "Remote Desktop Protocol (RDP) Security Audit" -ForegroundColor Cyan
+Write-Host "===================================================`n" -ForegroundColor Cyan
 
 function Test-Compliance {
     param([bool]$Condition, [string]$Hint = "")
     if ($Condition) { 
-        @{Pass=$true; Icon="✔"; Color="Green"; Remediation=""} 
+        @{Pass=$true; Icon="Pass"; Color="Green"; Remediation=""} 
     } else { 
-        @{Pass=$false; Icon="✘"; Color="Red"; Remediation=$Hint} 
+        @{Pass=$false; Icon="Fail"; Color="Red"; Remediation=$Hint} 
     }
 }
 
@@ -67,7 +67,7 @@ $encLevel = (Get-ItemProperty "HKLM:\System\CurrentControlSet\Control\Terminal S
 $encOK = ($encLevel -ge 3)
 $test3 = Test-Compliance $encOK "Set-ItemProperty 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name MinEncryptionLevel -Value 3"
 $Results += [PSCustomObject]@{
-    Check = "Encryption Level (≥High)"
+    Check = "Encryption Level (High or FIPS)"
     Status = $test3.Icon
     Value = $(switch($encLevel){1{"Low"}2{"Client Compatible"}3{"High"}4{"FIPS"}default{"Unknown"}})
     Remediation = $test3.Remediation
@@ -110,7 +110,7 @@ $timeout = (Get-ItemProperty "HKLM:\System\CurrentControlSet\Control\Terminal Se
 $timeoutOK = ($null -ne $timeout -and $timeout -le 900000)
 $test6 = Test-Compliance $timeoutOK "Set-ItemProperty 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name MaxIdleTime -Value 600000"
 $Results += [PSCustomObject]@{
-    Check = "Session Timeout (≤15min)"
+    Check = "Session Timeout (<=15min)"
     Status = $test6.Icon
     Value = $(if($timeout){"$([math]::Round($timeout/60000,0)) min"}else{"Not Set"})
     Remediation = $test6.Remediation
@@ -178,9 +178,9 @@ Write-Host $(if($raOK){"Active"}else{"Disabled"})
 
 # Summary
 $percentage = [math]::Round(($score / $total) * 100, 1)
-Write-Host "`n───────────────────────────────────────────────────" -ForegroundColor Yellow
-Write-Host "🎯 Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
-Write-Host "───────────────────────────────────────────────────`n" -ForegroundColor Yellow
+Write-Host "`n---------------------------------------------------" -ForegroundColor Yellow
+Write-Host "Compliance Score: $score/$total ($percentage%)" -ForegroundColor $(if($percentage -ge 80){"Green"}else{"Red"})
+Write-Host "---------------------------------------------------`n" -ForegroundColor Yellow
 
 # Export
 $output = @{
@@ -194,15 +194,15 @@ $output = @{
 if ($ExportJSON) {
     $jsonPath = Join-Path $LogPath "rdp_audit_$timestamp.json"
     $output | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
-    Write-Host "📄 JSON exported to: $jsonPath" -ForegroundColor Cyan
+    Write-Host "JSON exported to: $jsonPath" -ForegroundColor Cyan
 }
 
 # Remediation
-$failed = $Results | Where-Object {$_.Status -eq "✘"}
+$failed = $Results | Where-Object {$_.Status -eq "Fail"}
 if ($failed) {
-    Write-Host "🔧 Remediation Steps:" -ForegroundColor Yellow
+    Write-Host "Remediation Steps:" -ForegroundColor Yellow
     $failed | ForEach-Object {
-        Write-Host "   • $($_.Check): " -NoNewline -ForegroundColor Red
+        Write-Host " - $($_.Check): " -NoNewline -ForegroundColor Red
         Write-Host $_.Remediation -ForegroundColor White
     }
 }
