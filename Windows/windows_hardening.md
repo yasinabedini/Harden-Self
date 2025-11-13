@@ -16,6 +16,7 @@ Applies to domain members and standalone hosts.
 | Account lockout threshold | 5 invalid attempts | Brute-force prevention |
 | Lockout duration | >=15 minutes | Delay repeated attacks |
 
+🧭 Goal: Ensure password and lockout policies resist common cracking attempts.
 ---
 
 ## 🕵️‍♂️ 2. Audit Policy
@@ -32,6 +33,8 @@ Applies to domain members and standalone hosts.
 Use **Group Policy Editor** →  
 `Computer Configuration > Windows Settings > Security Settings > Local Policies > Audit Policy`
 
+🧭 Goal: Provide full visibility into authentication, policy, and system changes.
+
 ---
 
 ## 🧱 3. User Account Control (UAC)
@@ -44,6 +47,8 @@ Use **Group Policy Editor** →
 
 Ensures privilege elevation is explicitly approved.
 
+🧭 Goal: Force explicit elevation approval and prevent background privilege escalation.
+
 ---
 
 ## 🔐 4. SMB & Network Protocols
@@ -55,6 +60,8 @@ Ensures privilege elevation is explicitly approved.
 | LLMNR & NetBIOS | Disabled | Prevent name spoofing attacks |
 | Remote Registry | Disabled | Reduce attack surface |
 | Unnecessary shares | Removed | Prevent unintentional exposure |
+
+🧭 Goal: Harden legacy protocols and contain lateral movement vectors.
 
 ---
 
@@ -69,6 +76,8 @@ Ensures privilege elevation is explicitly approved.
 | Windows Defender Real‑Time Protection | Enabled |
 | Attack Surface Reduction (ASR) rules | Enabled |
 
+🧭 Goal: Shrink the attack surface and enforce secure remote access paths.
+
 ---
 
 ## ⚙️ Validation Commands
@@ -77,3 +86,10 @@ Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\LanManServer\Parameter
 Get-SmbServerConfiguration | Select EnableSMB1Protocol, EnableSecuritySignature
 Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System" | Select ConsentPromptBehaviorAdmin, EnableLUA
 auditpol /get /category:*
+
+
+---
+
+| Author | Repository | License | Last Update |
+|---------|-------------|----------|--------------|
+| [**yasinabedini**](https://github.com/yasinabedini) | Harden‑Self / playbooks / windows | MIT | 2025‑11‑12 |
